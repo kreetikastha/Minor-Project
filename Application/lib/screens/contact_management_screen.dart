@@ -32,17 +32,28 @@ class _ContactManagementScreenState extends State<ContactManagementScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Add Emergency Contact"),
+        backgroundColor: const Color(0xFF1E1E1E),
+        title: const Text("Add Emergency Contact", style: TextStyle(color: Colors.white)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: _nameController,
-              decoration: const InputDecoration(labelText: "Name"),
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(
+                labelText: "Name",
+                labelStyle: TextStyle(color: Colors.white70),
+                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+              ),
             ),
             TextField(
               controller: _phoneController,
-              decoration: const InputDecoration(labelText: "Phone Number"),
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(
+                labelText: "Phone Number",
+                labelStyle: TextStyle(color: Colors.white70),
+                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+              ),
               keyboardType: TextInputType.phone,
             ),
           ],
@@ -50,9 +61,10 @@ class _ContactManagementScreenState extends State<ContactManagementScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
+            child: const Text("Cancel", style: TextStyle(color: Colors.white54)),
           ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
             onPressed: () async {
               if (_nameController.text.isNotEmpty && _phoneController.text.isNotEmpty) {
                 await _contactService.saveContact(
@@ -76,33 +88,50 @@ class _ContactManagementScreenState extends State<ContactManagementScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Emergency Contacts"),
-        backgroundColor: Colors.indigo,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
       body: _contacts.isEmpty
-          ? const Center(child: Text("No emergency contacts added yet."))
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.people_outline, size: 80, color: Colors.white.withOpacity(0.1)),
+                  const SizedBox(height: 16),
+                  const Text("No emergency contacts added yet.", style: TextStyle(color: Colors.white54)),
+                ],
+              ),
+            )
           : ListView.builder(
+              padding: const EdgeInsets.all(16),
               itemCount: _contacts.length,
               itemBuilder: (context, index) {
                 final contact = _contacts[index];
-                return ListTile(
-                  leading: const CircleAvatar(child: Icon(Icons.person)),
-                  title: Text(contact.name),
-                  subtitle: Text(contact.phoneNumber),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () async {
-                      await _contactService.deleteContact(index);
-                      _loadContacts();
-                    },
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.redAccent.withOpacity(0.2),
+                      child: const Icon(Icons.person, color: Colors.redAccent),
+                    ),
+                    title: Text(contact.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text(contact.phoneNumber, style: const TextStyle(color: Colors.white70)),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                      onPressed: () async {
+                        await _contactService.deleteContact(index);
+                        _loadContacts();
+                      },
+                    ),
                   ),
                 );
               },
             ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: _addContact,
-        backgroundColor: Colors.indigo,
-        child: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: Colors.redAccent,
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text("Add Contact", style: TextStyle(color: Colors.white)),
       ),
     );
   }

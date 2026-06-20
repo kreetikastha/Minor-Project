@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guardian Admin | Security Dashboard</title>
+
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div class="logo">
+            <i class="fas fa-shield-halved"></i>
+            <span>Guardian</span>
+        </div>
+
+        <ul class="nav-menu">
+            <li class="nav-item">
+                <a href="#" class="nav-link active">
+                    <i class="fas fa-grid-2"></i> Dashboard
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="fas fa-microchip"></i> Devices
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="fas fa-map-location-dot"></i> Live Map
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="fas fa-bell"></i> Alerts
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="fas fa-users"></i> Users
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="fas fa-gear"></i> Settings
+                </a>
+            </li>
+        </ul>
+    </aside>
+
+    <main class="main-content">
+        <header>
+            <div class="header-title">
+                <h1>Security Overview</h1>
+                <p>Monitoring 1,284 active safety bands</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="triggerSOS()">
+                    <i class="fas fa-tower-broadcast"></i> SIMULATE SOS
+                </button>
+                <div class="avatar">KS</div>
+            </div>
+        </header>
+
+        <section class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success);">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>Active Bands</h3>
+                    <div class="stat-value">1,208</div>
+                    <div class="stat-trend trend-up"><i class="fas fa-caret-up"></i> 4%</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: rgba(255, 77, 77, 0.1); color: var(--primary);">
+                    <i class="fas fa-triangle-exclamation"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>Alerts Today</h3>
+                    <div class="stat-value">14</div>
+                    <div class="stat-trend trend-down"><i class="fas fa-caret-down"></i> 2.1%</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: rgba(59, 130, 246, 0.1); color: var(--accent-blue);">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>System Health</h3>
+                    <div class="stat-value">99%</div>
+                    <div class="stat-trend trend-up">Optimal</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="content-grid">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2 class="panel-title">Real-time Location Tracking</h2>
+                    <div class="badge badge-resolved">Live Feed</div>
+                </div>
+                <div class="map-view">
+                    <div class="map-placeholder">
+                        <i class="fas fa-earth-asia" style="font-size: 5rem; color: #151822;"></i>
+                        <p style="margin-top: 1rem; color: var(--text-dim);">Google Maps API Integration Pending</p>
+                    </div>
+                    <div class="marker" style="top: 40%; left: 55%;"></div>
+                    <div class="marker" style="top: 60%; left: 45%;"></div>
+                </div>
+
+                <div class="console-panel">
+                    <div class="console-header">
+                        <span><i class="fas fa-terminal"></i> System Console</span>
+                        <span class="status-dot"></span>
+                    </div>
+                    <div class="console-body" id="console-body">
+                        <div class="log-entry log-info">[09:00:01] System Booted...</div>
+                        <div class="log-entry log-info">[09:00:05] Connecting to Gateway...</div>
+                        <div class="log-entry log-success">[09:00:10] Gateway Connected. Monitoring started.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <h2 class="panel-title">Active Alerts</h2>
+                    <a href="#" style="color: var(--primary); font-size: 0.8rem; text-decoration: none;">View All</a>
+                </div>
+                <div class="alert-list">
+                    <div class="alert-item">
+                        <div class="alert-meta">
+                            <h4>Device #GB-8842</h4>
+                            <span>10:45 AM • Boudha, KTM</span>
+                        </div>
+                        <span class="badge badge-emergency">Emergency</span>
+                    </div>
+                    <div class="alert-item">
+                        <div class="alert-meta">
+                            <h4>Device #GB-1290</h4>
+                            <span>09:30 AM • Lalitpur</span>
+                        </div>
+                        <span class="badge badge-resolved">Resolved</span>
+                    </div>
+                    <div class="alert-item">
+                        <div class="alert-meta">
+                            <h4>Device #GB-0043</h4>
+                            <span>Yesterday • Bhaktapur</span>
+                        </div>
+                        <span class="badge badge-resolved">Resolved</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

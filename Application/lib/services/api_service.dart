@@ -1,24 +1,25 @@
 import '../models/band_status.dart';
 
 class ApiService {
-  // Replace with your actual backend URL
-  // The SIM-based band will post its GPS and tap status here
-  static const String baseUrl = 'https://your-backend-api.com/api';
-
-  // Simulation flag for testing the UI
+  // Standalone Mode: No Backend required
+  // All state is managed within the app for this demonstration/UI-UX version.
+  
   static bool simulateEmergency = false;
 
   Future<BandStatus> fetchBandStatus() async {
-    // In production:
-    // final response = await http.get(Uri.parse('$baseUrl/status'));
-    // return BandStatus.fromJson(jsonDecode(response.body));
-
-    await Future.delayed(const Duration(milliseconds: 800));
+    // Artificial delay to simulate network latency
+    await Future.delayed(const Duration(milliseconds: 500));
+    
     return BandStatus(
       latitude: 27.7172,
       longitude: 85.3240,
       isEmergency: simulateEmergency,
       lastUpdated: DateTime.now(),
     );
+  }
+
+  // Method to toggle emergency state locally
+  static void toggleEmergency(bool value) {
+    simulateEmergency = value;
   }
 }
