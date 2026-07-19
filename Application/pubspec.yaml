@@ -39,6 +39,7 @@ dependencies:
   shared_preferences: ^2.2.2
   vibration: ^2.0.1
   audioplayers: ^5.2.1
+  flutter_blue_plus: ^1.31.0
   cupertino_icons: ^1.0.8
 
 dev_dependencies:
