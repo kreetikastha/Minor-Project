@@ -1,51 +1,63 @@
+const API_BASE_URL = 'http://localhost:3000/api';
+
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Guardian Dashboard Initialized');
 
-    // Auto-update timestamps or mock data
+    // Initial fetch
+    fetchDashboardData();
+    fetchAlerts();
+
+    // Polling for live updates
     setInterval(() => {
-        updateStats();
+        fetchDashboardData();
+        fetchAlerts();
         addConsoleLog('System Heartbeat: All sensors operational', 'info');
-    }, 15000);
+    }, 5000);
 });
 
-function updateStats() {
-    console.log('Refreshing dashboard data...');
-    // Randomly fluctuate active bands to look "live"
-    const activeCount = document.querySelector('.stat-value');
-    if (activeCount) {
-        const current = parseInt(activeCount.innerText.replace(',', ''));
-        const change = Math.floor(Math.random() * 5) - 2;
-        activeCount.innerText = (current + change).toLocaleString();
+async function fetchDashboardData() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/stats`);
+        const data = await response.json();
+
+        document.querySelector('.stat-card:nth-child(1) .stat-value').innerText = data.activeBands.toLocaleString();
+        document.querySelector('.stat-card:nth-child(2) .stat-value').innerText = data.alertsToday;
+        document.querySelector('.stat-card:nth-child(3) .stat-value').innerText = data.systemHealth;
+    } catch (error) {
+        console.error('Error fetching stats:', error);
     }
 }
 
-function triggerSOS() {
+async function fetchAlerts() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/alerts`);
+        const alerts = await response.json();
+        renderAlerts(alerts);
+    } catch (error) {
+        console.error('Error fetching alerts:', error);
+    }
+}
+
+function renderAlerts(alerts) {
     const alertList = document.querySelector('.alert-list');
-    const deviceId = `GB-${Math.floor(Math.random() * 9000) + 1000}`;
-    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const location = "Kathmandu, NP";
+    alertList.innerHTML = ''; // Clear current list
 
-    const alertHTML = `
-        <div class="alert-item" style="animation: slideIn 0.3s ease-out">
-            <div class="alert-meta">
-                <h4>Device #${deviceId}</h4>
-                <span>Just now • ${location}</span>
+    alerts.forEach(alert => {
+        const badgeClass = alert.status === 'Emergency' ? 'badge-emergency' : 'badge-resolved';
+        const alertHTML = `
+            <div class="alert-item">
+                <div class="alert-meta">
+                    <h4>Device #${alert.id}</h4>
+                    <span>${alert.time} • ${alert.location}</span>
+                </div>
+                <span class="badge ${badgeClass}">${alert.status}</span>
             </div>
-            <span class="badge badge-emergency">Emergency</span>
-        </div>
-    `;
-
-    alertList.insertAdjacentHTML('afterbegin', alertHTML);
-
-    // Add to console log
-    addConsoleLog(`CRITICAL: SOS signal received from ${deviceId}`, 'error');
-
-    // Play sound or notification logic
-    showNotification(`EMERGENCY: SOS triggered by #${deviceId}`);
+        `;
+        alertList.insertAdjacentHTML('beforeend', alertHTML);
+    });
 }
 
 function addConsoleLog(message, type) {
-    // This assumes we add a console panel to the HTML
     const consoleBody = document.getElementById('console-body');
     if (!consoleBody) return;
 
@@ -58,12 +70,23 @@ function addConsoleLog(message, type) {
     consoleBody.scrollTop = consoleBody.scrollHeight;
 }
 
-function showNotification(message) {
-    if ("Notification" in window) {
-        if (Notification.permission === "granted") {
-            new Notification("Guardian Alert", { body: message });
-        } else if (Notification.permission !== "denied") {
-            Notification.requestPermission();
-        }
+// Keeping this for simulation if needed, but now it could actually POST to backend
+async function triggerSOS() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/alerts`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                deviceId: `SIM-${Math.floor(Math.random() * 9000) + 1000}`,
+                latitude: 27.7172,
+                longitude: 85.3240,
+                status: 'Emergency'
+            })
+        });
+        const result = await response.json();
+        addConsoleLog(`CRITICAL: Manual SOS triggered for ${result.alert.id}`, 'error');
+        fetchAlerts();
+    } catch (error) {
+        console.error('Error triggering SOS:', error);
     }
 }

@@ -8,6 +8,7 @@ import '../models/band_status.dart';
 import '../services/api_service.dart';
 import '../services/sms_service.dart';
 import '../services/contact_service.dart';
+import '../services/bluetooth_service.dart';
 import 'contact_management_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -22,15 +23,28 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   final AudioPlayer _audioPlayer = AudioPlayer();
   final SmsService _smsService = SmsService();
   final ContactService _contactService = ContactService();
+  late BandBluetoothService _bluetoothService;
   
   BandStatus? _currentStatus;
   Timer? _timer;
   bool _emergencyAlreadyTriggered = false;
+  bool _isHardwareConnected = false;
   late AnimationController _pulseController;
 
   @override
   void initState() {
     super.initState();
+    _bluetoothService = BandBluetoothService(
+      onEmergencyTriggered: (msg) {
+        if (!_emergencyAlreadyTriggered) {
+          _handleEmergency();
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
+        }
+      },
+      onConnectionChanged: (connected) {
+        setState(() => _isHardwareConnected = connected);
+      },
+    );
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 1),
@@ -86,6 +100,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     _timer?.cancel();
     _audioPlayer.dispose();
     _pulseController.dispose();
+    _bluetoothService.dispose();
     Vibration.cancel();
     super.dispose();
   }
@@ -101,6 +116,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
+          IconButton(
+            icon: Icon(_isHardwareConnected ? Icons.bluetooth_connected : Icons.bluetooth_disabled),
+            color: _isHardwareConnected ? Colors.blue : Colors.grey,
+            onPressed: () => _bluetoothService.startScan(),
+          ),
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () => showModalBottomSheet(context: context, builder: (context) => _buildSettingsSheet()),
