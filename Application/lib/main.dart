@@ -1,9 +1,21 @@
 import 'package:flutter/material.dart';
-import 'screens/home_screen.dart';
-import 'services/api_service.dart';
+import 'package:provider/provider.dart';
+import 'app/routes.dart';
+import 'providers/band_provider.dart';
+import 'providers/history_provider.dart';
+import 'providers/notification_provider.dart';
 
 void main() {
-  runApp(const SmartSecurityApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => BandProvider()),
+        ChangeNotifierProvider(create: (_) => HistoryProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
+      ],
+      child: const SmartSecurityApp(),
+    ),
+  );
 }
 
 class SmartSecurityApp extends StatelessWidget {
@@ -16,159 +28,16 @@ class SmartSecurityApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
+        fontFamily: 'Inter',
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.red,
+          seedColor: const Color(0xff2563EB),
           brightness: Brightness.dark,
-          primary: Colors.redAccent,
+          primary: const Color(0xff2563EB),
         ),
-        scaffoldBackgroundColor: const Color(0xFF0F0F0F),
-        cardTheme: CardThemeData(
-          color: const Color(0xFF1E1E1E),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          elevation: 8,
-        ),
+        scaffoldBackgroundColor: const Color(0xff0F172A),
       ),
-      home: const LoginScreen(),
-    );
-  }
-}
-
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
-
-  @override
-  State<LoginScreen> createState() => _LoginScreenState();
-}
-
-class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final ApiService _apiService = ApiService();
-  bool _isLoading = false;
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _handleLogin() async {
-    final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
-
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please enter both email and password"),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    final success = await _apiService.login(email, password);
-
-    setState(() => _isLoading = false);
-
-    if (success) {
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-        );
-      }
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Invalid email or password"),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF1A237E), Colors.black],
-          ),
-        ),
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(30),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Icon(Icons.shield_rounded, size: 100, color: Colors.redAccent),
-                const SizedBox(height: 20),
-                const Text(
-                  "GUARDIAN",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: 4, color: Colors.white),
-                ),
-                const Text(
-                  "Smart Security System",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white70, letterSpacing: 1),
-                ),
-                const SizedBox(height: 60),
-                TextField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: Colors.white10,
-                    hintText: "Email",
-                    hintStyle: const TextStyle(color: Colors.white54),
-                    prefixIcon: const Icon(Icons.email_outlined, color: Colors.white70),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
-                  ),
-                ),
-                const SizedBox(height: 15),
-                TextField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: Colors.white10,
-                    hintText: "Password",
-                    hintStyle: const TextStyle(color: Colors.white54),
-                    prefixIcon: const Icon(Icons.lock_outline, color: Colors.white70),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
-                  ),
-                ),
-                const SizedBox(height: 30),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.redAccent,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                  ),
-                  onPressed: _isLoading ? null : _handleLogin,
-                  child: _isLoading 
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : const Text("SIGN IN", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+      initialRoute: AppRoutes.splash,
+      routes: AppRoutes.routes,
     );
   }
 }
