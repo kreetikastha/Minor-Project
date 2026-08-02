@@ -30,7 +30,22 @@ class ApiService {
     }
   }
 
-  // Fetch Latest Status from Firestore
+  // Stream for Real-time Status Updates
+  Stream<BandStatus> getStatusStream() {
+    return _db.collection('bands').doc('guardian_device_01').snapshots().map((doc) {
+      if (doc.exists && doc.data() != null) {
+        return BandStatus.fromJson(doc.data()!);
+      }
+      return BandStatus(
+        latitude: 27.7172,
+        longitude: 85.3240,
+        isEmergency: simulateEmergency,
+        lastUpdated: DateTime.now(),
+      );
+    });
+  }
+
+  // Fetch Latest Status from Firestore (Keep as fallback)
   Future<BandStatus> fetchBandStatus() async {
     try {
       // In simulation mode, return hardcoded data

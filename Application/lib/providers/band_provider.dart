@@ -76,6 +76,7 @@ class BandProvider with ChangeNotifier {
 
   @override
   void dispose() {
+    _statusSubscription?.cancel();
     _bluetoothService?.dispose();
     super.dispose();
   }
