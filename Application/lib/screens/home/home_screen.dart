@@ -5,12 +5,12 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:vibration/vibration.dart';
 import 'package:audioplayers/audioplayers.dart';
-import '../models/band_status.dart';
-import '../services/api_service.dart';
-import '../services/sms_service.dart';
-import '../services/contact_service.dart';
-import '../services/bluetooth_service.dart';
-import 'contact_management_screen.dart';
+import '../../models/band_status.dart';
+import '../../services/api_service.dart';
+import '../../services/sms_service.dart';
+import '../../services/contact_service.dart';
+import '../../services/bluetooth_service.dart';
+import '../contacts/contact_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -291,40 +291,99 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
-  // COMPACT LOCATION BAR (Small Map replacement)
+  // COMPACT MINI-MAP (Professional Tracker)
   Widget _buildCompactLocationBar() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      height: 160,
+      width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.04),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
-      child: Row(
-        children: [
-          const Icon(Icons.my_location_rounded, color: Colors.blueAccent, size: 18),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              _currentStatus != null
-                  ? "${_currentStatus!.latitude.toStringAsFixed(5)}, ${_currentStatus!.longitude.toStringAsFixed(5)}"
-                  : "Initializing tracker...",
-              style: const TextStyle(color: Colors.white70, fontFamily: 'monospace', fontSize: 13),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Stack(
+          children: [
+            // Radar/Grid Background
+            CustomPaint(
+              size: Size.infinite,
+              painter: GridPainter(),
             ),
-          ),
-          TextButton(
-            onPressed: () {
-              if (_currentStatus != null) {
-                launchUrl(Uri.parse("https://www.google.com/maps/search/?api=1&query=${_currentStatus!.latitude},${_currentStatus!.longitude}"));
-              }
-            },
-            style: TextButton.styleFrom(
-              backgroundColor: Colors.blueAccent.withOpacity(0.1),
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              minimumSize: const Size(0, 32),
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.radar_rounded, color: Colors.blueAccent.withOpacity(0.2), size: 40),
+                  const SizedBox(height: 8),
+                  Text(
+                    "LIVE TRACKING ACTIVE",
+                    style: TextStyle(
+                        color: Colors.blueAccent.withOpacity(0.3),
+                        fontSize: 9,
+                        letterSpacing: 2,
+                        fontWeight: FontWeight.bold
+                    ),
+                  ),
+                ],
+              ),
             ),
-            child: const Text("MAP", style: TextStyle(color: Colors.blueAccent, fontSize: 11, fontWeight: FontWeight.bold)),
-          ),
-        ],
+            // Bottom Info Bar
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: ClipRRect(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    color: Colors.black.withOpacity(0.5),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.redAccent.withOpacity(0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.location_on, color: Colors.redAccent, size: 12),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            _currentStatus != null
+                                ? "${_currentStatus!.latitude.toStringAsFixed(6)}, ${_currentStatus!.longitude.toStringAsFixed(6)}"
+                                : "Awaiting GPS Fix...",
+                            style: const TextStyle(
+                                color: Colors.white70,
+                                fontFamily: 'monospace',
+                                fontSize: 13,
+                                letterSpacing: 0.5
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            if (_currentStatus != null) {
+                              launchUrl(Uri.parse("https://www.google.com/maps/search/?api=1&query=${_currentStatus!.latitude},${_currentStatus!.longitude}"));
+                            }
+                          },
+                          style: TextButton.styleFrom(
+                            backgroundColor: Colors.blueAccent.withOpacity(0.1),
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            minimumSize: const Size(0, 30),
+                          ),
+                          child: const Text("MAP", style: TextStyle(color: Colors.blueAccent, fontSize: 10, fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -407,4 +466,23 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       ),
     );
   }
+}
+
+class GridPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.02)
+      ..strokeWidth = 1;
+
+    for (double i = 0; i < size.width; i += 20) {
+      canvas.drawLine(Offset(i, 0), Offset(i, size.height), paint);
+    }
+    for (double i = 0; i < size.height; i += 20) {
+      canvas.drawLine(Offset(0, i), Offset(size.width, i), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
