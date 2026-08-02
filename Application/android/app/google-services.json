@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "281473921523",
+    "project_id": "smart-security-band-6475d",
+    "storage_bucket": "smart-security-band-6475d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:281473921523:android:9b65beba8fd30ef1af2286",
+        "android_client_info": {
+          "package_name": "com.example.smartsecurityband.smart_security_band_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDmfytGH33A5onvT_ekZkT9saTYwaA_nA4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

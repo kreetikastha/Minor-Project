@@ -64,7 +64,7 @@ app.get('/api/alerts', (req, res) => {
 
 app.get('/api/stats', (req, res) => {
     res.json({
-        activeBands: 1208 + Math.floor(Math.random() * 10),
+        activeBands: 1208 + Math.floor(Mathgit .random() * 10),
         alertsToday: alerts.length,
         systemHealth: "99%"
     });

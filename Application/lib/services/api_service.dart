@@ -1,68 +1,99 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/band_status.dart';
 
 class ApiService {
-  // Use 10.0.2.2 for Android Emulator, local IP for physical devices
-  static const String baseUrl = 'http://10.0.2.2:3000/api';
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
   
   static bool simulateEmergency = false;
 
+  // Firebase Authentication
   Future<bool> login(String email, String password) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        return true;
-      } else {
-        return false;
-      }
+      await _auth.signInWithEmailAndPassword(email: email, password: password);
+      return true;
     } catch (e) {
-      print("Login API Error: $e");
+      print("Firebase Login Error: $e");
       return false;
     }
   }
 
-  Future<BandStatus> fetchBandStatus() async {
+  // Register New User (Optional)
+  Future<bool> register(String email, String password) async {
     try {
-      // Simulation for now
-      return BandStatus(
-        latitude: 27.7172,
-        longitude: 85.3240,
-        isEmergency: simulateEmergency,
-        lastUpdated: DateTime.now(),
-      );
+      await _auth.createUserWithEmailAndPassword(email: email, password: password);
+      return true;
     } catch (e) {
-      print("API Error: $e");
-      throw e;
+      print("Firebase Registration Error: $e");
+      return false;
     }
   }
 
-  Future<void> sendAlertToBackend(String deviceId, double lat, double lng) async {
+  // Fetch Latest Status from Firestore
+  Future<BandStatus> fetchBandStatus() async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/alerts'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'deviceId': deviceId,
-          'latitude': lat,
-          'longitude': lng,
-          'status': 'Emergency',
-        }),
-      );
+      // In simulation mode, return hardcoded data
+      if (simulateEmergency) {
+        return BandStatus(
+          latitude: 27.7172,
+          longitude: 85.3240,
+          isEmergency: true,
+          lastUpdated: DateTime.now(),
+        );
+      }
 
-      if (response.statusCode == 201) {
-        print("Alert synced with backend");
+      // Real Mode: Get from Firestore collection 'bands'
+      var doc = await _db.collection('bands').doc('guardian_device_01').get();
+      
+      if (doc.exists) {
+        return BandStatus.fromJson(doc.data()!);
+      } else {
+        return BandStatus(
+          latitude: 27.7172,
+          longitude: 85.3240,
+          isEmergency: false,
+          lastUpdated: DateTime.now(),
+        );
       }
     } catch (e) {
-      print("Error sending alert: $e");
+      print("Firestore Error: $e");
+      return BandStatus(
+        latitude: 27.7172,
+        longitude: 85.3240,
+        isEmergency: false,
+        lastUpdated: DateTime.now(),
+      );
     }
+  }
+
+  // Send SOS Alert to Firestore
+  Future<void> sendAlertToBackend(String deviceId, double lat, double lng) async {
+    try {
+      await _db.collection('alerts').add({
+        'deviceId': deviceId,
+        'latitude': lat,
+        'longitude': lng,
+        'status': 'Emergency',
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+      
+      // Also update the band's current status
+      await _db.collection('bands').doc('guardian_device_01').set({
+        'latitude': lat,
+        'longitude': lng,
+        'is_emergency': true,
+        'updated_at': DateTime.now().toIso8601String(),
+      }, SetOptions(merge: true));
+      
+      print("Alert synced with Firebase Firestore");
+    } catch (e) {
+      print("Error sending alert to Firebase: $e");
+    }
+  }
+
+  // Sign Out
+  Future<void> logout() async {
+    await _auth.signOut();
   }
 }
