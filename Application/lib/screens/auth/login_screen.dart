@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:local_auth/local_auth.dart';
 import '../../services/api_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -13,9 +12,10 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final ApiService _apiService = ApiService();
-  final LocalAuthentication _localAuth = LocalAuthentication();
+  
   bool _isLoading = false;
   bool _obscurePassword = true;
+  bool _isLoginMode = true; // Toggle between Login and Register
 
   @override
   void dispose() {
@@ -24,24 +24,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  Future<void> _handleBiometric() async {
-    try {
-      bool canCheck = await _localAuth.canCheckBiometrics;
-      if (canCheck) {
-        bool authenticated = await _localAuth.authenticate(
-          localizedReason: 'Please authenticate to access Guardian Band',
-          options: const AuthenticationOptions(biometricOnly: true),
-        );
-        if (authenticated) {
-          if (mounted) Navigator.pushReplacementNamed(context, '/home');
-        }
-      }
-    } catch (e) {
-      print("Biometric Error: $e");
-    }
-  }
-
-  Future<void> _handleLogin() async {
+  Future<void> _handleSubmit() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
@@ -53,15 +36,30 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     setState(() => _isLoading = true);
-    final success = await _apiService.login(email, password);
+    
+    bool success;
+    if (_isLoginMode) {
+      success = await _apiService.login(email, password);
+    } else {
+      success = await _apiService.register(email, password);
+    }
+    
     setState(() => _isLoading = false);
 
     if (success) {
-      if (mounted) Navigator.pushReplacementNamed(context, '/home');
+      if (mounted) {
+        if (!_isLoginMode) {
+           ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Account created successfully! Logging in..."), backgroundColor: Colors.green),
+          );
+        }
+        Navigator.pushReplacementNamed(context, '/home');
+      }
     } else {
       if (mounted) {
+        String errorMsg = _isLoginMode ? "Invalid credentials or user not found" : "Registration failed. Try a stronger password or different email.";
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Invalid credentials"), backgroundColor: Colors.redAccent),
+          SnackBar(content: Text(errorMsg), backgroundColor: Colors.redAccent),
         );
       }
     }
@@ -85,16 +83,17 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const SizedBox(height: 40),
+                const SizedBox(height: 20),
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), shape: BoxShape.circle),
                   child: const Icon(Icons.security_rounded, size: 80, color: Colors.white),
                 ),
-                const SizedBox(height: 30),
+                const SizedBox(height: 20),
                 const Text("GUARDIAN", style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900, letterSpacing: 6, color: Colors.white)),
-                const Text("SMART SECURITY BAND", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w300, letterSpacing: 2, color: Colors.white70)),
-                const SizedBox(height: 60),
+                Text(_isLoginMode ? "WELCOME BACK" : "CREATE ACCOUNT", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w300, letterSpacing: 2, color: Colors.white70)),
+                const SizedBox(height: 50),
+                
                 TextField(
                   controller: _emailController,
                   style: const TextStyle(color: Colors.white),
@@ -126,41 +125,39 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 40),
-                Row(
-                  children: [
-                    Expanded(
-                      child: SizedBox(
-                        height: 60,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue.shade700,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                          ),
-                          onPressed: _isLoading ? null : _handleLogin,
-                          child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("SIGN IN", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
-                        ),
-                      ),
+                
+                SizedBox(
+                  width: double.infinity,
+                  height: 60,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue.shade700,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                     ),
-                    const SizedBox(width: 15),
-                    Container(
-                      height: 60,
-                      width: 60,
-                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(20)),
-                      child: IconButton(
-                        icon: const Icon(Icons.fingerprint_rounded, color: Colors.blueAccent, size: 30),
-                        onPressed: _handleBiometric,
-                      ),
-                    ),
-                  ],
+                    onPressed: _isLoading ? null : _handleSubmit,
+                    child: _isLoading 
+                      ? const CircularProgressIndicator(color: Colors.white) 
+                      : Text(_isLoginMode ? "SIGN IN" : "REGISTER", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                  ),
                 ),
+                
+                const SizedBox(height: 20),
+                TextButton(
+                  onPressed: () => setState(() => _isLoginMode = !_isLoginMode),
+                  child: Text(
+                    _isLoginMode ? "Don't have an account? Register" : "Already have an account? Sign In",
+                    style: const TextStyle(color: Colors.white54),
+                  ),
+                ),
+                
                 const SizedBox(height: 40),
                 const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text("Secure Connection", style: TextStyle(color: Colors.white24, fontSize: 12)),
+                    Text("Secure Cloud Connection", style: TextStyle(color: Colors.white24, fontSize: 12)),
                     SizedBox(width: 8),
-                    Icon(Icons.lock_outline, size: 14, color: Colors.white24),
+                    Icon(Icons.cloud_done_outlined, size: 14, color: Colors.white24),
                   ],
                 ),
               ],

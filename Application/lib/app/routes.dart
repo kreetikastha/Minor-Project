@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import '../screens/splash/splash_screen.dart';
 import '../screens/auth/login_screen.dart';
-import '../screens/home/home_screen.dart';
 import '../screens/contacts/contact_screen.dart';
 import '../screens/history/history_screen.dart';
 import '../screens/notification/notification_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/settings/settings_screen.dart';
-
 import '../screens/home/dashboard_wrapper.dart';
 
 class AppRoutes {

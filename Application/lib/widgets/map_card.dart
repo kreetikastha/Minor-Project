@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:geolocator/geolocator.dart';
 import '../models/band_status.dart';
 
 class MapCard extends StatelessWidget {
   final BandStatus? status;
+  final Position? phonePosition;
   final Set<Marker> markers;
   final Function(GoogleMapController) onMapCreated;
   final double height;
@@ -11,6 +13,7 @@ class MapCard extends StatelessWidget {
   const MapCard({
     Key? key,
     required this.status,
+    this.phonePosition,
     required this.markers,
     required this.onMapCreated,
     this.height = 350,
@@ -18,6 +21,15 @@ class MapCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Determine the initial camera focus
+    LatLng initialTarget = const LatLng(27.7172, 85.3240); 
+    
+    if (status != null) {
+      initialTarget = LatLng(status!.latitude, status!.longitude);
+    } else if (phonePosition != null) {
+      initialTarget = LatLng(phonePosition!.latitude, phonePosition!.longitude);
+    }
+
     return Container(
       height: height,
       width: double.infinity,
@@ -33,30 +45,23 @@ class MapCard extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(28),
-        child: status == null
-            ? const Center(
-                child: CircularProgressIndicator(),
-              )
-            : GoogleMap(
-                initialCameraPosition: CameraPosition(
-                  target: LatLng(
-                    status!.latitude,
-                    status!.longitude,
-                  ),
-                  zoom: 16,
-                ),
-                markers: markers,
-                myLocationEnabled: true,
-                zoomControlsEnabled: false,
-                mapToolbarEnabled: false,
-                onMapCreated: onMapCreated,
-                style: _darkMapStyle, // Optional: You can add dark mode json here
-              ),
+        child: GoogleMap(
+          initialCameraPosition: CameraPosition(
+            target: initialTarget,
+            zoom: 15,
+          ),
+          markers: markers,
+          myLocationEnabled: true,
+          myLocationButtonEnabled: false,
+          zoomControlsEnabled: false,
+          mapToolbarEnabled: false,
+          onMapCreated: onMapCreated,
+          style: _darkMapStyle,
+        ),
       ),
     );
   }
 
-  // Dark mode style for the map (simplified)
   final String _darkMapStyle = '''
   [
     {
@@ -66,6 +71,11 @@ class MapCard extends StatelessWidget {
     {
       "elementType": "labels.text.fill",
       "stylers": [{"color": "#746855"}]
+    },
+    {
+      "featureType": "water",
+      "elementType": "geometry",
+      "stylers": [{"color": "#17263c"}]
     }
   ]
   ''';
