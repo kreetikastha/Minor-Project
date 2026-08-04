@@ -1,64 +1,49 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import '../models/band_status.dart';
 import '../services/api_service.dart';
-import '../services/bluetooth_service.dart';
+import '../services/location_service.dart';
 
 class BandProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
-  BandBluetoothService? _bluetoothService;
+  final LocationService _locationService = LocationService();
+  StreamSubscription<BandStatus>? _statusSubscription;
 
   BandStatus? _status;
-  bool _isHardwareConnected = false;
+  Position? _currentPhonePosition;
+  bool _isHardwareConnected = false; // Now means "Online in Cloud"
   bool _isEmergency = false;
-  String _currentAddress = "Fetching location...";
+  String _currentAddress = "Locating...";
   int _batteryLevel = 100;
-  String _gsmStatus = "Searching...";
-  Timer? _pollingTimer;
+  String _gsmStatus = "Ready";
 
   BandStatus? get status => _status;
+  Position? get currentPhonePosition => _currentPhonePosition;
   bool get isHardwareConnected => _isHardwareConnected;
   bool get isEmergency => _isEmergency;
   String get currentAddress => _currentAddress;
   int get batteryLevel => _batteryLevel;
   String get gsmStatus => _gsmStatus;
 
-  void initialize(BuildContext context, {required Function(String) onEmergency}) {
-    _bluetoothService = BandBluetoothService(
-      onEmergencyTriggered: (msg) {
-        _isEmergency = true;
-        onEmergency(msg);
-        notifyListeners();
-      },
-      onConnectionChanged: (connected) {
-        _isHardwareConnected = connected;
-        notifyListeners();
-      },
-    );
-    _startPolling();
-  }
+  Future<void> initialize(BuildContext context, {required Function(String) onEmergency}) async {
+    // 1. Get phone's current location immediately
+    _currentPhonePosition = await _locationService.getCurrentLocation();
+    notifyListeners();
 
-  void _startPolling() {
-    _pollingTimer?.cancel();
-    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
-      try {
-        final data = await _apiService.fetchBandStatus();
-        _status = data;
-        
-        // Simulating battery and GSM for now
-        _batteryLevel = 85; 
-        _gsmStatus = "Ready";
-
-        if (data.isEmergency && !_isEmergency) {
-          _isEmergency = true;
-        } else if (!data.isEmergency && _isEmergency) {
-          _isEmergency = false;
-        }
-        
-        notifyListeners();
-      } catch (e) {
-        print("Polling error: $e");
+    // 2. Start Listening to Cloud Firestore (Wi-Fi Bridge)
+    _statusSubscription = _apiService.getStatusStream().listen((data) {
+      _status = data;
+      _isHardwareConnected = data.lastUpdated.isAfter(DateTime.now().subtract(const Duration(minutes: 5)));
+      _isEmergency = data.isEmergency;
+      
+      if (_isEmergency) {
+        onEmergency("CLOUD ALERT: Emergency detected via Wi-Fi!");
       }
+
+      notifyListeners();
+    }, onError: (e) {
+      print("Firestore Stream Error: \$e");
     });
   }
 
@@ -69,17 +54,13 @@ class BandProvider with ChangeNotifier {
 
   void stopEmergency() {
     _isEmergency = false;
+    // Note: We might want to send a "Reset" signal back to the hardware via Firestore
     notifyListeners();
-  }
-
-  void startScan() {
-    _bluetoothService?.startScan();
   }
 
   @override
   void dispose() {
-    _pollingTimer?.cancel();
-    _bluetoothService?.dispose();
+    _statusSubscription?.cancel();
     super.dispose();
   }
 }
