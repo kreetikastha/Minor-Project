@@ -3,8 +3,21 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../providers/history_provider.dart';
 
-class HistoryScreen extends StatelessWidget {
+class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
+
+  @override
+  State<HistoryScreen> createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends State<HistoryScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<HistoryProvider>().fetchHistory();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,8 +80,8 @@ class HistoryScreen extends StatelessWidget {
   Color _getStatusColor(String status) {
     switch (status) {
       case 'Resolved': return Colors.green;
-      case 'SMS Sent': return Colors.blue;
-      default: return Colors.red;
+      case 'SOS Triggered': return Colors.red;
+      default: return Colors.blue;
     }
   }
 }

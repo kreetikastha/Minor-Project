@@ -5,17 +5,19 @@ import 'app/routes.dart';
 import 'providers/band_provider.dart';
 import 'providers/history_provider.dart';
 import 'providers/notification_provider.dart';
+import 'providers/user_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-
+  
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => BandProvider()),
         ChangeNotifierProvider(create: (_) => HistoryProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ChangeNotifierProvider(create: (_) => UserProvider()),
       ],
       child: const SmartSecurityApp(),
     ),

@@ -8,6 +8,8 @@ import '../screens/notification/notification_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/settings/settings_screen.dart';
 
+import '../screens/home/dashboard_wrapper.dart';
+
 class AppRoutes {
   static const String splash = '/';
   static const String login = '/login';
@@ -21,7 +23,7 @@ class AppRoutes {
   static Map<String, WidgetBuilder> get routes => {
     splash: (context) => const SplashScreen(),
     login: (context) => const LoginScreen(),
-    home: (context) => const HomeScreen(),
+    home: (context) => const DashboardWrapper(),
     contacts: (context) => const ContactManagementScreen(),
     history: (context) => const HistoryScreen(),
     notifications: (context) => const NotificationScreen(),

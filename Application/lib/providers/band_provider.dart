@@ -14,6 +14,7 @@ class BandProvider with ChangeNotifier {
   String _currentAddress = "Fetching location...";
   int _batteryLevel = 100;
   String _gsmStatus = "Searching...";
+  Timer? _pollingTimer;
 
   BandStatus? get status => _status;
   bool get isHardwareConnected => _isHardwareConnected;
@@ -38,7 +39,8 @@ class BandProvider with ChangeNotifier {
   }
 
   void _startPolling() {
-    Timer.periodic(const Duration(seconds: 5), (_) async {
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
       try {
         final data = await _apiService.fetchBandStatus();
         _status = data;
@@ -76,7 +78,7 @@ class BandProvider with ChangeNotifier {
 
   @override
   void dispose() {
-    _statusSubscription?.cancel();
+    _pollingTimer?.cancel();
     _bluetoothService?.dispose();
     super.dispose();
   }
