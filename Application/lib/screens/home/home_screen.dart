@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:vibration/vibration.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:geocoding/geocoding.dart';
 import '../../models/band_status.dart';
 import '../../services/api_service.dart';
 import '../../services/sms_service.dart';
@@ -27,7 +28,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   late BandBluetoothService _bluetoothService;
 
   BandStatus? _currentStatus;
-  Timer? _timer;
+  StreamSubscription<BandStatus>? _statusSubscription;
+  String _currentAddress = "Locating...";
   bool _emergencyAlreadyTriggered = false;
   bool _isHardwareConnected = false;
   late AnimationController _pulseController;
@@ -54,12 +56,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     )..repeat(reverse: true);
-    _startPolling();
-  }
-
-  void _startPolling() {
-    _timer = Timer.periodic(const Duration(seconds: 5), (timer) async {
-      final status = await _apiService.fetchBandStatus();
+    
+    // Real-time Stream from Firebase
+    _statusSubscription = _apiService.getStatusStream().listen((status) {
       if (mounted) {
         if (status.isEmergency && !_emergencyAlreadyTriggered) {
           _handleEmergency();
@@ -68,8 +67,23 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           _stopAlarm();
         }
         setState(() => _currentStatus = status);
+        _updateAddress(status.latitude, status.longitude);
       }
     });
+  }
+
+  Future<void> _updateAddress(double lat, double lng) async {
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(lat, lng);
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks[0];
+        setState(() {
+          _currentAddress = "${place.name}, ${place.subLocality}, ${place.locality}";
+        });
+      }
+    } catch (e) {
+      debugPrint("Geocoding error: $e");
+    }
   }
 
   Future<void> _handleEmergency() async {
@@ -100,7 +114,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _statusSubscription?.cancel();
     _audioPlayer.dispose();
     _pulseController.dispose();
     _bluetoothService.dispose();
@@ -362,16 +376,31 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         ),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: Text(
-                            _currentStatus != null
-                                ? "${_currentStatus!.latitude.toStringAsFixed(6)}, ${_currentStatus!.longitude.toStringAsFixed(6)}"
-                                : "Awaiting GPS Fix...",
-                            style: const TextStyle(
-                                color: Colors.white70,
-                                fontFamily: 'monospace',
-                                fontSize: 13,
-                                letterSpacing: 0.5
-                            ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _currentAddress,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                _currentStatus != null
+                                    ? "${_currentStatus!.latitude.toStringAsFixed(5)}, ${_currentStatus!.longitude.toStringAsFixed(5)}"
+                                    : "Awaiting GPS Fix...",
+                                style: const TextStyle(
+                                    color: Colors.white54,
+                                    fontFamily: 'monospace',
+                                    fontSize: 10,
+                                    letterSpacing: 0.5
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         TextButton(
