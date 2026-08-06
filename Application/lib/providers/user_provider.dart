@@ -11,12 +11,15 @@ class UserProvider with ChangeNotifier {
 
   Map<String, dynamic>? get profile => _profile;
   bool get isLoading => _isLoading;
-
   String? get uid => _auth.currentUser?.uid;
+
+  void clear() {
+    _profile = null;
+    notifyListeners();
+  }
 
   Future<void> fetchProfile() async {
     if (uid == null) return;
-
     _isLoading = true;
     notifyListeners();
 
@@ -24,6 +27,18 @@ class UserProvider with ChangeNotifier {
       final doc = await _db.collection('users').doc(uid).get();
       if (doc.exists) {
         _profile = doc.data();
+      } else {
+        // Initialize if not exists
+        _profile = {
+          'name': 'Guardian User',
+          'email': _auth.currentUser?.email,
+          'phone': '',
+          'address': '',
+          'blood_group': '--',
+          'allergies': 'None',
+          'medical_notes': 'N/A'
+        };
+        await _db.collection('users').doc(uid).set(_profile!);
       }
       _isLoading = false;
       notifyListeners();
@@ -39,6 +54,8 @@ class UserProvider with ChangeNotifier {
     required String phone,
     required String address,
     required String bloodGroup,
+    required String allergies,
+    required String medicalNotes,
   }) async {
     if (uid == null) return;
 
@@ -48,6 +65,8 @@ class UserProvider with ChangeNotifier {
         'phone': phone,
         'address': address,
         'blood_group': bloodGroup,
+        'allergies': allergies,
+        'medical_notes': medicalNotes,
         'updated_at': FieldValue.serverTimestamp(),
       };
 

@@ -8,19 +8,23 @@ class ApiService {
   
   static bool simulateEmergency = false;
 
-  // Firebase Authentication
-  Future<bool> login(String email, String password) async {
+  // Firebase Authentication - Login
+  Future<String?> login(String email, String password) async {
     try {
       await _auth.signInWithEmailAndPassword(email: email, password: password);
-      return true;
+      return null; // Success
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'user-not-found') return 'No user found for that email.';
+      if (e.code == 'wrong-password') return 'Wrong password provided.';
+      if (e.code == 'invalid-email') return 'The email address is badly formatted.';
+      return e.message ?? 'An unknown error occurred.';
     } catch (e) {
-      print("Firebase Login Error: $e");
-      return false;
+      return e.toString();
     }
   }
 
-  // Register New User
-  Future<bool> register(String email, String password) async {
+  // Firebase Authentication - Register
+  Future<String?> register(String email, String password) async {
     try {
       final userCredential = await _auth.createUserWithEmailAndPassword(email: email, password: password);
       final user = userCredential.user;
@@ -28,17 +32,35 @@ class ApiService {
         // Initialize user profile in Firestore
         await _db.collection('users').doc(user.uid).set({
           'email': email,
-          'name': 'User',
+          'name': 'Guardian User',
           'blood_group': 'Unknown',
           'phone': '',
           'address': '',
           'created_at': FieldValue.serverTimestamp(),
         });
       }
-      return true;
+      return null; // Success
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'weak-password') return 'The password provided is too weak.';
+      if (e.code == 'email-already-in-use') return 'An account already exists for that email.';
+      if (e.code == 'invalid-email') return 'The email address is badly formatted.';
+      return e.message ?? 'An unknown error occurred.';
     } catch (e) {
-      print("Firebase Registration Error: $e");
-      return false;
+      return e.toString();
+    }
+  }
+
+  // Firebase Authentication - Reset Password
+  Future<String?> resetPassword(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+      return null; // Success
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'user-not-found') return 'No user found for that email.';
+      if (e.code == 'invalid-email') return 'The email address is badly formatted.';
+      return e.message ?? 'An unknown error occurred.';
+    } catch (e) {
+      return e.toString();
     }
   }
 
@@ -81,7 +103,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print("Firestore Error: $e");
+      print("Firestore Error: \$e");
       return BandStatus(
         latitude: 27.7172,
         longitude: 85.3240,
@@ -128,7 +150,7 @@ class ApiService {
       
       print("Alert and history synced with Firebase");
     } catch (e) {
-      print("Error sending alert to Firebase: $e");
+      print("Error sending alert to Firebase: \$e");
     }
   }
 

@@ -42,13 +42,13 @@ class QuickActionsGrid extends StatelessWidget {
               icon: Icons.local_police_rounded,
               title: "Police",
               color: Colors.blue,
-              onTap: () => launchUrl(Uri.parse("tel:100")),
+              onTap: () => _launchCaller("100"),
             ),
             _ActionButton(
               icon: Icons.medical_services_rounded,
               title: "Ambulance",
               color: Colors.red,
-              onTap: () => launchUrl(Uri.parse("tel:102")),
+              onTap: () => _launchCaller("102"),
             ),
             _ActionButton(
               icon: Icons.people_alt_rounded,
@@ -60,28 +60,57 @@ class QuickActionsGrid extends StatelessWidget {
               icon: Icons.sms_rounded,
               title: "Send SOS",
               color: Colors.green,
-              onTap: () async {
-                if (status == null) return;
-                final contacts = await contactService.getContacts();
-                if (contacts.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("No Emergency Contacts Found")),
-                  );
-                  return;
-                }
-                await smsService.sendEmergencyMessages(contacts, status!);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    backgroundColor: Colors.green,
-                    content: Text("SOS Messages Sent"),
-                  ),
-                );
-              },
+              onTap: () => _triggerSOS(context),
             ),
           ],
         ),
       ],
     );
+  }
+
+  Future<void> _launchCaller(String number) async {
+    final Uri url = Uri.parse("tel:\$number");
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
+    }
+  }
+
+  Future<void> _triggerSOS(BuildContext context) async {
+    if (status == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Awaiting GPS Fix. Please wait.")),
+      );
+      return;
+    }
+
+    final contacts = await contactService.getContacts();
+    if (contacts.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("No Emergency Contacts Found")),
+      );
+      return;
+    }
+
+    // Professional SOS Message Template
+    final String mapsLink = "https://www.google.com/maps/search/?api=1&query=\${status!.latitude},\${status!.longitude}";
+    final String message = "EMERGENCY! I need help. My current location is: \$mapsLink";
+
+    // Launch SMS app for the first contact (limitation of platform launchers)
+    final Uri smsUri = Uri.parse("sms:\${contacts.first.phoneNumber}?body=\${Uri.encodeComponent(message)}");
+    
+    if (await canLaunchUrl(smsUri)) {
+      await launchUrl(smsUri);
+      
+      // Also send the automated cloud alerts in the background
+      await smsService.sendEmergencyMessages(contacts, status!);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: Colors.green,
+          content: Text("SOS Alerts Dispatched"),
+        ),
+      );
+    }
   }
 }
 

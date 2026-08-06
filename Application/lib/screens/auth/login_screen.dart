@@ -24,6 +24,34 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  Future<void> _handleForgotPassword() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter your email address to reset password"), backgroundColor: Colors.orangeAccent),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    final error = await _apiService.resetPassword(email);
+    if (mounted) setState(() => _isLoading = false);
+
+    if (error == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Password reset email sent! Check your inbox."), backgroundColor: Colors.green),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error), backgroundColor: Colors.redAccent),
+        );
+      }
+    }
+  }
+
   Future<void> _handleSubmit() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
@@ -37,16 +65,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
     
-    bool success;
+    String? error;
     if (_isLoginMode) {
-      success = await _apiService.login(email, password);
+      error = await _apiService.login(email, password);
     } else {
-      success = await _apiService.register(email, password);
+      error = await _apiService.register(email, password);
     }
     
-    setState(() => _isLoading = false);
+    if (mounted) setState(() => _isLoading = false);
 
-    if (success) {
+    if (error == null) {
       if (mounted) {
         if (!_isLoginMode) {
            ScaffoldMessenger.of(context).showSnackBar(
@@ -57,9 +85,8 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } else {
       if (mounted) {
-        String errorMsg = _isLoginMode ? "Invalid credentials or user not found" : "Registration failed. Try a stronger password or different email.";
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMsg), backgroundColor: Colors.redAccent),
+          SnackBar(content: Text(error), backgroundColor: Colors.redAccent),
         );
       }
     }
@@ -124,7 +151,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 40),
+                if (_isLoginMode) 
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: _handleForgotPassword,
+                      child: const Text("Forgot Password?", style: TextStyle(color: Colors.white38, fontSize: 13)),
+                    ),
+                  ),
+                
+                const SizedBox(height: 30),
                 
                 SizedBox(
                   width: double.infinity,

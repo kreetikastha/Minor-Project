@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../app/routes.dart';
+import '../../utils/permissions.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -18,9 +19,14 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   void _navigateToNext() {
-    Future.delayed(const Duration(seconds: 4), () {
+    Future.delayed(const Duration(seconds: 4), () async {
       if (!mounted) return;
       
+      // Request essential permissions before proceeding
+      await PermissionHelper.requestAllPermissions();
+
+      if (!mounted) return;
+
       // Check if user is already logged in
       final user = FirebaseAuth.instance.currentUser;
       
