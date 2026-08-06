@@ -27,10 +27,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   late BandBluetoothService _bluetoothService;
 
   BandStatus? _currentStatus;
-  Timer? _timer;
-  bool _emergencyAlreadyTriggered = false;
-  bool _isHardwareConnected = false;
-  late AnimationController _pulseController;
+  StreamSubscription<BandStatus>? _statusSubscription;
 
   @override
   void initState() {
@@ -54,12 +51,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     )..repeat(reverse: true);
-    _startPolling();
-  }
-
-  void _startPolling() {
-    _timer = Timer.periodic(const Duration(seconds: 5), (timer) async {
-      final status = await _apiService.fetchBandStatus();
+    
+    // Switch from Polling (Timer) to Real-time Stream (Firebase)
+    _statusSubscription = _apiService.getStatusStream().listen((status) {
       if (mounted) {
         if (status.isEmergency && !_emergencyAlreadyTriggered) {
           _handleEmergency();
@@ -72,33 +66,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     });
   }
 
-  Future<void> _handleEmergency() async {
-    _emergencyAlreadyTriggered = true;
-    _startAlarm();
-    if (_currentStatus != null) {
-      final contacts = await _contactService.getContacts();
-      if (contacts.isNotEmpty) {
-        await _smsService.sendEmergencyMessages(contacts, _currentStatus!);
-      }
-    }
-  }
-
-  void _startAlarm() async {
-    await _audioPlayer.setReleaseMode(ReleaseMode.loop);
-    await _audioPlayer.play(UrlSource('https://www.soundjay.com/buttons/beep-01a.mp3'));
-    if (await Vibration.hasVibrator() ?? false) {
-      Vibration.vibrate(pattern: [500, 1000, 500, 1000], repeat: 1);
-    }
-  }
-
-  void _stopAlarm() {
-    _audioPlayer.stop();
-    Vibration.cancel();
-  }
-
   @override
   void dispose() {
-    _timer?.cancel();
+    _statusSubscription?.cancel();
     _audioPlayer.dispose();
     _pulseController.dispose();
     _bluetoothService.dispose();
