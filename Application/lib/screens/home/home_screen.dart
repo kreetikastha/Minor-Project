@@ -27,7 +27,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   late BandBluetoothService _bluetoothService;
 
   BandStatus? _currentStatus;
-  StreamSubscription<BandStatus>? _statusSubscription;
+  Timer? _timer;
+  bool _emergencyAlreadyTriggered = false;
+  bool _isHardwareConnected = false;
+  late AnimationController _pulseController;
 
   @override
   void initState() {
@@ -51,9 +54,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     )..repeat(reverse: true);
-    
-    // Switch from Polling (Timer) to Real-time Stream (Firebase)
-    _statusSubscription = _apiService.getStatusStream().listen((status) {
+    _startPolling();
+  }
+
+  void _startPolling() {
+    _timer = Timer.periodic(const Duration(seconds: 5), (timer) async {
+      final status = await _apiService.fetchBandStatus();
       if (mounted) {
         if (status.isEmergency && !_emergencyAlreadyTriggered) {
           _handleEmergency();
@@ -66,9 +72,35 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     });
   }
 
+  Future<void> _handleEmergency() async {
+    _emergencyAlreadyTriggered = true;
+    _startAlarm();
+    if (_currentStatus != null) {
+      final contacts = await _contactService.getContacts();
+      if (contacts.isNotEmpty) {
+        await _smsService.sendEmergencyMessages(contacts, _currentStatus!);
+      }
+    }
+  }
+
+  void _startAlarm() async {
+    await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+    await _audioPlayer.play(UrlSource('https://www.soundjay.com/buttons/beep-01a.mp3'));
+    
+    final hasVibrator = await Vibration.hasVibrator();
+    if (hasVibrator == true) {
+      Vibration.vibrate(pattern: [500, 1000, 500, 1000], repeat: 1);
+    }
+  }
+
+  void _stopAlarm() {
+    _audioPlayer.stop();
+    Vibration.cancel();
+  }
+
   @override
   void dispose() {
-    _statusSubscription?.cancel();
+    _timer?.cancel();
     _audioPlayer.dispose();
     _pulseController.dispose();
     _bluetoothService.dispose();
@@ -179,25 +211,27 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              isEmergency ? "ALERT ACTIVE" : "SYSTEM ARMED",
-              style: TextStyle(
-                  color: statusColor,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 28,
-                  letterSpacing: -0.5
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isEmergency ? "ALERT ACTIVE" : "SYSTEM ARMED",
+                style: TextStyle(
+                    color: statusColor,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 28,
+                    letterSpacing: -0.5
+                ),
               ),
-            ),
-            Text(
-              _currentStatus != null
-                  ? "Last response: ${DateFormat('HH:mm:ss').format(_currentStatus!.lastUpdated)}"
-                  : "Checking band connection...",
-              style: const TextStyle(color: Colors.white38, fontSize: 13),
-            ),
-          ],
+              Text(
+                _currentStatus != null
+                    ? "Last response: ${DateFormat('HH:mm:ss').format(_currentStatus!.lastUpdated)}"
+                    : "Checking band connection...",
+                style: const TextStyle(color: Colors.white38, fontSize: 13),
+              ),
+            ],
+          ),
         ),
         _buildConnectionPulse(isEmergency),
       ],
@@ -223,20 +257,24 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   Widget _buildDeviceStats() {
-    return Row(
-      children: [
-        Expanded(child: _buildStatWidget(Icons.favorite, "72", "bpm", Colors.pinkAccent)),
-        const SizedBox(width: 12),
-        Expanded(child: _buildStatWidget(Icons.battery_4_bar_rounded, "88", "%", Colors.greenAccent)),
-        const SizedBox(width: 12),
-        Expanded(child: _buildStatWidget(Icons.sensors_rounded, "Active", "Signal", Colors.orangeAccent)),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Row(
+          children: [
+            Expanded(child: _buildStatWidget(Icons.favorite, "72", "bpm", Colors.pinkAccent)),
+            const SizedBox(width: 8),
+            Expanded(child: _buildStatWidget(Icons.battery_4_bar_rounded, "88", "%", Colors.greenAccent)),
+            const SizedBox(width: 8),
+            Expanded(child: _buildStatWidget(Icons.sensors_rounded, "Active", "Signal", Colors.orangeAccent)),
+          ],
+        );
+      }
     );
   }
 
   Widget _buildStatWidget(IconData icon, String value, String unit, Color color) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.04),
         borderRadius: BorderRadius.circular(20),
@@ -245,16 +283,19 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(height: 12),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(value, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-              const SizedBox(width: 4),
-              Text(unit, style: const TextStyle(color: Colors.white38, fontSize: 12)),
-            ],
+          Icon(icon, color: color, size: 18),
+          const SizedBox(height: 8),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(value, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(width: 2),
+                Text(unit, style: const TextStyle(color: Colors.white38, fontSize: 10)),
+              ],
+            ),
           ),
         ],
       ),
@@ -364,7 +405,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       crossAxisCount: 2,
       crossAxisSpacing: 12,
       mainAxisSpacing: 12,
-      childAspectRatio: 1.6,
+      childAspectRatio: 1.8,
       physics: const NeverScrollableScrollPhysics(),
       children: [
         _buildCompactAction(Icons.local_police, "POLICE", Colors.blue, () => launchUrl(Uri.parse("tel:100"))),
