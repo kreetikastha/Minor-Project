@@ -12,11 +12,24 @@ class BandStatus {
   });
 
   factory BandStatus.fromJson(Map<String, dynamic> json) {
+    DateTime parsedDate;
+    try {
+      if (json['updated_at'] is int) {
+        parsedDate = DateTime.fromMillisecondsSinceEpoch(json['updated_at']);
+      } else if (json['updated_at'] is String) {
+        parsedDate = DateTime.parse(json['updated_at']);
+      } else {
+        parsedDate = DateTime.now();
+      }
+    } catch (e) {
+      parsedDate = DateTime.now();
+    }
+
     return BandStatus(
-      latitude: json['latitude']?.toDouble() ?? 0.0,
-      longitude: json['longitude']?.toDouble() ?? 0.0,
+      latitude: json['latitude']?.toDouble() ?? 27.6713,
+      longitude: json['longitude']?.toDouble() ?? 85.3392,
       isEmergency: json['is_emergency'] ?? false,
-      lastUpdated: DateTime.parse(json['updated_at'] ?? DateTime.now().toIso8601String()),
+      lastUpdated: parsedDate,
     );
   }
 }

@@ -117,10 +117,15 @@ class ApiService {
 
   // Remote Deactivation: Tells the hardware to stop the alarm
   Future<void> deactivateEmergency(String bandId) async {
-    await _rtdb.ref('bands/$bandId').update({
-      'is_emergency': false,
-      'stop_alarm_request': true,
-    });
+    try {
+      await _rtdb.ref('bands/$bandId').update({
+        'is_emergency': false,
+        'stop_alarm_request': true,
+      });
+      print("DEBUG: Emergency deactivated in cloud.");
+    } catch (e) {
+      print("DEBUG: Deactivation failed: $e");
+    }
   }
 
   // Fetch Latest Status from Firestore

@@ -64,14 +64,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   Future<void> _setupBandListener() async {
-    // 1. Get the real band ID assigned to this user
-    final bandId = await _apiService.getAssignedBandId();
+    // FORCE BYPASS for demo: Link directly to hardware ID
+    const String bandId = "guardian_device_01"; 
     setState(() => _assignedBandId = bandId);
 
-    // 2. Start real-time listener for that specific band
+    print("DEBUG: Listening to hardware at path bands/$bandId");
+
     _statusSubscription?.cancel();
     _statusSubscription = _apiService.getStatusStream(bandId).listen((status) {
       if (mounted) {
+        print("DEBUG: New data received! Emergency: ${status.isEmergency}");
         if (status.isEmergency && !_emergencyAlreadyTriggered) {
           _handleEmergency();
         } else if (!status.isEmergency && _emergencyAlreadyTriggered) {
@@ -81,6 +83,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         setState(() => _currentStatus = status);
         _updateAddress(status.latitude, status.longitude);
       }
+    }, onError: (error) {
+      print("DEBUG: Stream Error - $error");
     });
   }
 
