@@ -32,7 +32,8 @@ class BandProvider with ChangeNotifier {
     notifyListeners();
 
     // 2. Start Listening to Cloud Firestore (Wi-Fi Bridge)
-    _statusSubscription = _apiService.getStatusStream().listen((data) {
+    final bandId = await _apiService.getAssignedBandId();
+    _statusSubscription = _apiService.getStatusStream(bandId).listen((data) {
       _status = data;
       _isHardwareConnected = data.lastUpdated.isAfter(DateTime.now().subtract(const Duration(minutes: 5)));
       _isEmergency = data.isEmergency;
@@ -43,7 +44,7 @@ class BandProvider with ChangeNotifier {
 
       notifyListeners();
     }, onError: (e) {
-      print("Firestore Stream Error: \$e");
+      print("Firestore Stream Error: $e");
     });
   }
 

@@ -11,6 +11,7 @@ import '../../services/api_service.dart';
 import '../../services/sms_service.dart';
 import '../../services/contact_service.dart';
 import '../../services/bluetooth_service.dart';
+import '../../services/notification_service.dart';
 import '../contacts/contact_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -27,8 +28,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   final ContactService _contactService = ContactService();
   late BandBluetoothService _bluetoothService;
 
+  final NotificationService _notificationService = NotificationService();
   BandStatus? _currentStatus;
   StreamSubscription<BandStatus>? _statusSubscription;
+  String _assignedBandId = 'guardian_device_01';
   String _currentAddress = "Locating...";
   bool _emergencyAlreadyTriggered = false;
   bool _isHardwareConnected = false;
@@ -57,8 +60,17 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       duration: const Duration(milliseconds: 1500),
     )..repeat(reverse: true);
     
-    // Real-time Stream from Firebase
-    _statusSubscription = _apiService.getStatusStream().listen((status) {
+    _setupBandListener();
+  }
+
+  Future<void> _setupBandListener() async {
+    // 1. Get the real band ID assigned to this user
+    final bandId = await _apiService.getAssignedBandId();
+    setState(() => _assignedBandId = bandId);
+
+    // 2. Start real-time listener for that specific band
+    _statusSubscription?.cancel();
+    _statusSubscription = _apiService.getStatusStream(bandId).listen((status) {
       if (mounted) {
         if (status.isEmergency && !_emergencyAlreadyTriggered) {
           _handleEmergency();
@@ -89,6 +101,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   Future<void> _handleEmergency() async {
     _emergencyAlreadyTriggered = true;
     _startAlarm();
+    
+    // Show high-priority local notification
+    await _notificationService.showEmergencyNotification(address: _currentAddress);
+
     if (_currentStatus != null) {
       final contacts = await _contactService.getContacts();
       if (contacts.isNotEmpty) {
@@ -208,11 +224,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           icon: Icon(Icons.history_rounded, color: Colors.white.withOpacity(0.5)),
           onPressed: () {},
         ),
-        const SizedBox(width: 10),
-        CircleAvatar(
-          radius: 16,
-          backgroundColor: Colors.white.withOpacity(0.05),
-          child: const Icon(Icons.person_outline, color: Colors.white70, size: 20),
+        IconButton(
+          icon: Icon(Icons.add_link_rounded, color: Colors.blueAccent.withOpacity(0.7)),
+          onPressed: () => _showLinkBandDialog(),
         ),
         const SizedBox(width: 20),
       ],
@@ -486,6 +500,36 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
+  void _showLinkBandDialog() {
+    final controller = TextEditingController(text: _assignedBandId);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: const Text("Link Hardware Band", style: TextStyle(color: Colors.white)),
+        content: TextField(
+          controller: controller,
+          style: const TextStyle(color: Colors.white),
+          decoration: const InputDecoration(
+            hintText: "Enter Band ID (e.g. BAND-01)",
+            hintStyle: TextStyle(color: Colors.white24),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCEL")),
+          ElevatedButton(
+            onPressed: () async {
+              await _apiService.linkBandToUser(controller.text);
+              Navigator.pop(context);
+              _setupBandListener(); // Restart listener with new ID
+            },
+            child: const Text("LINK BAND"),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildStopAlarmButton() {
     return Container(
       decoration: BoxDecoration(
@@ -500,6 +544,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         ),
         onPressed: () {
           _stopAlarm();
+          _apiService.deactivateEmergency(_assignedBandId);
           setState(() => ApiService.simulateEmergency = false);
         },
         child: const Text("DEACTIVATE EMERGENCY MODE", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),

@@ -64,9 +64,28 @@ class ApiService {
     }
   }
 
-  // Stream for Real-time Status Updates
-  Stream<BandStatus> getStatusStream() {
-    return _db.collection('bands').doc('guardian_device_01').snapshots().map((doc) {
+  // Link a physical band to the current user
+  Future<void> linkBandToUser(String bandId) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    
+    await _db.collection('users').doc(user.uid).set({
+      'assigned_band_id': bandId,
+    }, SetOptions(merge: true));
+  }
+
+  // Get the assigned band ID for the current user
+  Future<String> getAssignedBandId() async {
+    final user = _auth.currentUser;
+    if (user == null) return 'guardian_device_01'; // Default fallback
+    
+    var doc = await _db.collection('users').doc(user.uid).get();
+    return doc.data()?['assigned_band_id'] as String? ?? 'guardian_device_01';
+  }
+
+  // Updated Stream: Listens to real-time updates
+  Stream<BandStatus> getStatusStream(String bandId) {
+    return _db.collection('bands').doc(bandId).snapshots().map((doc) {
       if (doc.exists && doc.data() != null) {
         return BandStatus.fromJson(doc.data()!);
       }
@@ -77,6 +96,14 @@ class ApiService {
         lastUpdated: DateTime.now(),
       );
     });
+  }
+
+  // Remote Deactivation: Tells the hardware to stop the alarm
+  Future<void> deactivateEmergency(String bandId) async {
+    await _db.collection('bands').doc(bandId).set({
+      'is_emergency': false,
+      'stop_alarm_request': true, // A flag for the ESP32 to see
+    }, SetOptions(merge: true));
   }
 
   // Fetch Latest Status from Firestore
