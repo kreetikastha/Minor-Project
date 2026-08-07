@@ -1,10 +1,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_database/firebase_database.dart'; // NEW
 import '../models/band_status.dart';
 
 class ApiService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseDatabase _rtdb = FirebaseDatabase.instance; // NEW
   
   static bool simulateEmergency = false;
 
@@ -65,13 +67,26 @@ class ApiService {
   }
 
   // Link a physical band to the current user
-  Future<void> linkBandToUser(String bandId) async {
-    final user = _auth.currentUser;
-    if (user == null) return;
-    
-    await _db.collection('users').doc(user.uid).set({
-      'assigned_band_id': bandId,
-    }, SetOptions(merge: true));
+  Future<bool> linkBandToUser(String bandId) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        print("DEBUG: LINK FAILED - No user is currently logged in.");
+        return false;
+      }
+      
+      print("DEBUG: Attempting to link band $bandId to user ${user.uid}");
+      
+      await _db.collection('users').doc(user.uid).set({
+        'assigned_band_id': bandId,
+      }, SetOptions(merge: true));
+      
+      print("DEBUG: LINK SUCCESS - Band ID saved to Firestore.");
+      return true;
+    } catch (e) {
+      print("DEBUG: FIREBASE ERROR - $e");
+      return false;
+    }
   }
 
   // Get the assigned band ID for the current user
@@ -83,11 +98,13 @@ class ApiService {
     return doc.data()?['assigned_band_id'] as String? ?? 'guardian_device_01';
   }
 
-  // Updated Stream: Listens to real-time updates
+  // Updated Stream: Listens to the Realtime Database (RTDB)
   Stream<BandStatus> getStatusStream(String bandId) {
-    return _db.collection('bands').doc(bandId).snapshots().map((doc) {
-      if (doc.exists && doc.data() != null) {
-        return BandStatus.fromJson(doc.data()!);
+    // If the user types 'guardian_device_01', we listen to 'bands/guardian_device_01'
+    return _rtdb.ref('bands/$bandId').onValue.map((event) {
+      if (event.snapshot.exists && event.snapshot.value != null) {
+        final Map<String, dynamic> data = Map<String, dynamic>.from(event.snapshot.value as Map);
+        return BandStatus.fromJson(data);
       }
       return BandStatus(
         latitude: 27.7172,
@@ -100,10 +117,10 @@ class ApiService {
 
   // Remote Deactivation: Tells the hardware to stop the alarm
   Future<void> deactivateEmergency(String bandId) async {
-    await _db.collection('bands').doc(bandId).set({
+    await _rtdb.ref('bands/$bandId').update({
       'is_emergency': false,
-      'stop_alarm_request': true, // A flag for the ESP32 to see
-    }, SetOptions(merge: true));
+      'stop_alarm_request': true,
+    });
   }
 
   // Fetch Latest Status from Firestore

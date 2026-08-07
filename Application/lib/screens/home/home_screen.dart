@@ -519,9 +519,20 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCEL")),
           ElevatedButton(
             onPressed: () async {
-              await _apiService.linkBandToUser(controller.text);
-              Navigator.pop(context);
-              _setupBandListener(); // Restart listener with new ID
+              bool success = await _apiService.linkBandToUser(controller.text);
+              if (mounted) {
+                Navigator.pop(context);
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Band Linked Successfully!"), backgroundColor: Colors.green),
+                  );
+                  _setupBandListener(); 
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Failed to link band. Are you logged in?"), backgroundColor: Colors.red),
+                  );
+                }
+              }
             },
             child: const Text("LINK BAND"),
           ),
