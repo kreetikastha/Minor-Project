@@ -163,10 +163,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     delegate: SliverChildListDelegate([
                       _buildMiniStatusHeader(isEmergency),
                       const SizedBox(height: 25),
-                      _buildSectionHeader("Real-time Vitals"),
-                      const SizedBox(height: 12),
-                      _buildDeviceStats(),
-                      const SizedBox(height: 25),
                       _buildSectionHeader("Quick Location"),
                       const SizedBox(height: 12),
                       _buildCompactLocationBar(),
@@ -265,40 +261,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             ],
           ),
         ),
-        _buildConnectionPulse(isEmergency),
       ],
-    );
-  }
-
-  Widget _buildConnectionPulse(bool isEmergency) {
-    return ScaleTransition(
-      scale: Tween(begin: 1.0, end: 1.1).animate(_pulseController),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: (isEmergency ? Colors.redAccent : Colors.blueAccent).withOpacity(0.1),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          _isHardwareConnected ? Icons.bluetooth_connected : Icons.bluetooth_disabled,
-          color: _isHardwareConnected ? Colors.blueAccent : Colors.white24,
-          size: 24,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDeviceStats() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Row(
-          children: [
-            Expanded(child: _buildStatWidget(Icons.battery_4_bar_rounded, "88", "%", Colors.greenAccent)),
-            const SizedBox(width: 8),
-            Expanded(child: _buildStatWidget(Icons.sensors_rounded, "Active", "Signal", Colors.orangeAccent)),
-          ],
-        );
-      }
     );
   }
 
