@@ -27,10 +27,10 @@ class StatisticsGrid extends StatelessWidget {
           childAspectRatio: 1.4,
           children: [
             _StatCard(
-              icon: Icons.bluetooth_connected,
-              title: "Bluetooth",
-              value: hardwareConnected ? "Connected" : "Disconnected",
-              color: hardwareConnected ? Colors.blue : Colors.grey,
+              icon: Icons.cloud_done_rounded,
+              title: "Cloud Sync",
+              value: hardwareConnected ? "Online" : "Offline",
+              color: hardwareConnected ? Colors.greenAccent : Colors.redAccent,
             ),
             _StatCard(
               icon: Icons.gps_fixed,

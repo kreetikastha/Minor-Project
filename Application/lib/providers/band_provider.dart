@@ -12,50 +12,46 @@ class BandProvider with ChangeNotifier {
 
   BandStatus? _status;
   Position? _currentPhonePosition;
-  bool _isHardwareConnected = false; // Now means "Online in Cloud"
+  bool _isHardwareConnected = false;
   bool _isEmergency = false;
   String _currentAddress = "Locating...";
-  int _batteryLevel = 100;
-  String _gsmStatus = "Ready";
-
+  
   BandStatus? get status => _status;
   Position? get currentPhonePosition => _currentPhonePosition;
   bool get isHardwareConnected => _isHardwareConnected;
   bool get isEmergency => _isEmergency;
   String get currentAddress => _currentAddress;
-  int get batteryLevel => _batteryLevel;
-  String get gsmStatus => _gsmStatus;
 
   Future<void> initialize(BuildContext context, {required Function(String) onEmergency}) async {
-    // 1. Get phone's current location immediately
+    // 1. Get phone's location for initial map focus
     _currentPhonePosition = await _locationService.getCurrentLocation();
     notifyListeners();
 
-    // 2. Start Listening to Cloud Firestore (Wi-Fi Bridge)
+    // 2. Fetch "Last Known" status from Firestore immediately
     final bandId = await _apiService.getAssignedBandId();
+    final lastStatus = await _apiService.fetchBandStatus(); 
+    _status = lastStatus;
+    notifyListeners();
+
+    // 3. Start Live Real-time Listener
+    _statusSubscription?.cancel();
     _statusSubscription = _apiService.getStatusStream(bandId).listen((data) {
       _status = data;
-      _isHardwareConnected = data.lastUpdated.isAfter(DateTime.now().subtract(const Duration(minutes: 5)));
       _isEmergency = data.isEmergency;
       
+      // Hardware is connected if updated in last 5 minutes
+      _isHardwareConnected = data.lastUpdated.isAfter(DateTime.now().subtract(const Duration(minutes: 5)));
+
       if (_isEmergency) {
-        onEmergency("CLOUD ALERT: Emergency detected via Wi-Fi!");
+        onEmergency("LIVE ALERT: SOS Triggered!");
       }
 
       notifyListeners();
-    }, onError: (e) {
-      print("Firestore Stream Error: $e");
     });
   }
 
   void setAddress(String address) {
     _currentAddress = address;
-    notifyListeners();
-  }
-
-  void stopEmergency() {
-    _isEmergency = false;
-    // Note: We might want to send a "Reset" signal back to the hardware via Firestore
     notifyListeners();
   }
 
