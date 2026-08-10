@@ -158,26 +158,20 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               slivers: [
                 _buildAppBar(),
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 40),
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
-                      _buildGreeting(),
-                      const SizedBox(height: 25),
                       _buildMiniStatusHeader(isEmergency),
-                      const SizedBox(height: 35),
+                      const SizedBox(height: 45),
                       _buildSectionHeader("Quick Location"),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 15),
                       _buildCompactLocationBar(),
-                      const SizedBox(height: 35),
+                      const SizedBox(height: 45),
                       _buildSectionHeader("Safety Actions"),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 15),
                       _buildActionGrid(),
-                      const SizedBox(height: 35),
-                      _buildSectionHeader("Security Tips"),
-                      const SizedBox(height: 12),
-                      _buildTipsCarousel(),
                       if (isEmergency) ...[
-                        const SizedBox(height: 30),
+                        const SizedBox(height: 40),
                         _buildStopAlarmButton(),
                       ],
                     ]),
@@ -216,11 +210,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       elevation: 0,
       pinned: true,
       centerTitle: false,
+      toolbarHeight: 70,
       title: const Text(
         "GUARDIAN",
         style: TextStyle(
-            fontSize: 14,
-            letterSpacing: 4,
+            fontSize: 16,
+            letterSpacing: 6,
             fontWeight: FontWeight.w900,
             color: Colors.blueAccent
         ),
@@ -235,57 +230,27 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
-  Widget _buildGreeting() {
+  Widget _buildMiniStatusHeader(bool isEmergency) {
+    final statusColor = isEmergency ? Colors.redAccent : const Color(0xFF10B981);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "Hello, Guardian",
+          isEmergency ? "ALERT ACTIVE" : "SYSTEM ARMED",
           style: TextStyle(
-            color: Colors.white.withOpacity(0.5),
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
+              color: statusColor,
+              fontWeight: FontWeight.w900,
+              fontSize: 34,
+              letterSpacing: -1.0
           ),
         ),
-        const Text(
-          "Stay safe today!",
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMiniStatusHeader(bool isEmergency) {
-    final statusColor = isEmergency ? Colors.redAccent : const Color(0xFF10B981);
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                isEmergency ? "ALERT ACTIVE" : "SYSTEM ARMED",
-                style: TextStyle(
-                    color: statusColor,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 28,
-                    letterSpacing: -0.5
-                ),
-              ),
-              Text(
-                _currentStatus != null
-                    ? "Last response: ${DateFormat('HH:mm:ss').format(_currentStatus!.lastUpdated)}"
-                    : "Checking band connection...",
-                style: const TextStyle(color: Colors.white38, fontSize: 13),
-              ),
-            ],
-          ),
+        const SizedBox(height: 4),
+        Text(
+          _currentStatus != null
+              ? "Last response: ${DateFormat('HH:mm:ss').format(_currentStatus!.lastUpdated)}"
+              : "Checking band connection...",
+          style: const TextStyle(color: Colors.white38, fontSize: 14),
         ),
       ],
     );
@@ -324,7 +289,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   // COMPACT MINI-MAP (Professional Tracker)
   Widget _buildCompactLocationBar() {
     return Container(
-      height: 160,
+      height: 220,
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.04),
@@ -437,9 +402,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     return GridView.count(
       shrinkWrap: true,
       crossAxisCount: 2,
-      crossAxisSpacing: 15,
-      mainAxisSpacing: 15,
-      childAspectRatio: 1.5,
+      crossAxisSpacing: 18,
+      mainAxisSpacing: 18,
+      childAspectRatio: 1.3,
       physics: const NeverScrollableScrollPhysics(),
       children: [
         _buildCompactAction(Icons.local_police_rounded, "POLICE", Colors.blue, () => launchUrl(Uri.parse("tel:100"))),
@@ -455,51 +420,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         }),
         _buildCompactAction(Icons.medical_services_rounded, "MEDICAL", Colors.redAccent, () => launchUrl(Uri.parse("tel:102"))),
       ],
-    );
-  }
-
-  Widget _buildTipsCarousel() {
-    final List<Map<String, dynamic>> tips = [
-      {'icon': Icons.battery_charging_full_rounded, 'title': 'Keep it Charged', 'desc': 'Ensure your band is above 20%.'},
-      {'icon': Icons.verified_user_rounded, 'title': 'Verify Contacts', 'desc': 'Review your emergency list monthly.'},
-      {'icon': Icons.location_on_rounded, 'title': 'GPS Precision', 'desc': 'Stay in open areas for better tracking.'},
-    ];
-
-    return SizedBox(
-      height: 100,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: tips.length,
-        itemBuilder: (context, index) {
-          final tip = tips[index];
-          return Container(
-            width: 260,
-            margin: const EdgeInsets.only(right: 15),
-            padding: const EdgeInsets.all(15),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.04),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.05)),
-            ),
-            child: Row(
-              children: [
-                Icon(tip['icon'], color: Colors.blueAccent, size: 30),
-                const SizedBox(width: 15),
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(tip['title'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                      Text(tip['desc'], style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
     );
   }
 
@@ -533,47 +453,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     return Text(
       title.toUpperCase(),
       style: const TextStyle(color: Colors.white24, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 2),
-    );
-  }
-
-  void _showLinkBandDialog() {
-    final controller = TextEditingController(text: _assignedBandId);
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
-        title: const Text("Link Hardware Band", style: TextStyle(color: Colors.white)),
-        content: TextField(
-          controller: controller,
-          style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(
-            hintText: "Enter Band ID (e.g. BAND-01)",
-            hintStyle: TextStyle(color: Colors.white24),
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCEL")),
-          ElevatedButton(
-            onPressed: () async {
-              bool success = await _apiService.linkBandToUser(controller.text);
-              if (mounted) {
-                Navigator.pop(context);
-                if (success) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Band Linked Successfully!"), backgroundColor: Colors.green),
-                  );
-                  _setupBandListener(); 
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Failed to link band. Are you logged in?"), backgroundColor: Colors.red),
-                  );
-                }
-              }
-            },
-            child: const Text("LINK BAND"),
-          ),
-        ],
-      ),
     );
   }
 
