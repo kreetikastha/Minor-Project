@@ -1,6 +1,7 @@
-# Simplify Home Screen Tasks
+# Enhancing Home Screen Tasks
 
-- `[ ]` Remove "Real-time Vitals" section from `home_screen.dart`
-- `[ ]` Remove Bluetooth connection pulse from `home_screen.dart`
-- `[ ]` Clean up unused helper methods (`_buildDeviceStats`, `_buildConnectionPulse`)
-- `[ ]` Verify UI on emulator
+- `[x]` Remove the link icon from the top-right AppBar.
+- `[x]` Implement a "Personalized Greeting" and enhanced "System Status" section.
+- `[x]` Refine the "Safety Actions" grid with improved styling.
+- `[x]` Add a "Safety Tips" or "Quick Tips" horizontal scroll at the bottom to fill empty space.
+- `[x]` Verify the layout balance on the emulator.

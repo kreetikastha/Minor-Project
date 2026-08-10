@@ -161,15 +161,21 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   padding: const EdgeInsets.fromLTRB(20, 10, 20, 40),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
-                      _buildMiniStatusHeader(isEmergency),
+                      _buildGreeting(),
                       const SizedBox(height: 25),
+                      _buildMiniStatusHeader(isEmergency),
+                      const SizedBox(height: 35),
                       _buildSectionHeader("Quick Location"),
                       const SizedBox(height: 12),
                       _buildCompactLocationBar(),
-                      const SizedBox(height: 25),
+                      const SizedBox(height: 35),
                       _buildSectionHeader("Safety Actions"),
                       const SizedBox(height: 12),
                       _buildActionGrid(),
+                      const SizedBox(height: 35),
+                      _buildSectionHeader("Security Tips"),
+                      const SizedBox(height: 12),
+                      _buildTipsCarousel(),
                       if (isEmergency) ...[
                         const SizedBox(height: 30),
                         _buildStopAlarmButton(),
@@ -222,13 +228,33 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       actions: [
         IconButton(
           icon: Icon(Icons.history_rounded, color: Colors.white.withOpacity(0.5)),
-          onPressed: () {},
+          onPressed: () => Navigator.pushNamed(context, '/history'),
         ),
-        IconButton(
-          icon: Icon(Icons.add_link_rounded, color: Colors.blueAccent.withOpacity(0.7)),
-          onPressed: () => _showLinkBandDialog(),
+        const SizedBox(width: 10),
+      ],
+    );
+  }
+
+  Widget _buildGreeting() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Hello, Guardian",
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.5),
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
         ),
-        const SizedBox(width: 20),
+        const Text(
+          "Stay safe today!",
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ],
     );
   }
@@ -411,24 +437,69 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     return GridView.count(
       shrinkWrap: true,
       crossAxisCount: 2,
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      childAspectRatio: 1.8,
+      crossAxisSpacing: 15,
+      mainAxisSpacing: 15,
+      childAspectRatio: 1.5,
       physics: const NeverScrollableScrollPhysics(),
       children: [
-        _buildCompactAction(Icons.local_police, "POLICE", Colors.blue, () => launchUrl(Uri.parse("tel:100"))),
-        _buildCompactAction(Icons.people_alt, "CONTACTS", Colors.orange, () {
+        _buildCompactAction(Icons.local_police_rounded, "POLICE", Colors.blue, () => launchUrl(Uri.parse("tel:100"))),
+        _buildCompactAction(Icons.people_alt_rounded, "CONTACTS", Colors.orange, () {
           Navigator.push(context, MaterialPageRoute(builder: (context) => const ContactManagementScreen()));
         }),
-        _buildCompactAction(Icons.sos_rounded, "SEND SOS", Colors.purple, () async {
+        _buildCompactAction(Icons.sos_rounded, "SEND SOS", Colors.purpleAccent, () async {
           final contacts = await _contactService.getContacts();
           if (_currentStatus != null && contacts.isNotEmpty) {
             await _smsService.sendEmergencyMessages(contacts, _currentStatus!);
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Alerts Dispatched")));
           }
         }),
-        _buildCompactAction(Icons.medical_services, "MEDICAL", Colors.redAccent, () => launchUrl(Uri.parse("tel:102"))),
+        _buildCompactAction(Icons.medical_services_rounded, "MEDICAL", Colors.redAccent, () => launchUrl(Uri.parse("tel:102"))),
       ],
+    );
+  }
+
+  Widget _buildTipsCarousel() {
+    final List<Map<String, dynamic>> tips = [
+      {'icon': Icons.battery_charging_full_rounded, 'title': 'Keep it Charged', 'desc': 'Ensure your band is above 20%.'},
+      {'icon': Icons.verified_user_rounded, 'title': 'Verify Contacts', 'desc': 'Review your emergency list monthly.'},
+      {'icon': Icons.location_on_rounded, 'title': 'GPS Precision', 'desc': 'Stay in open areas for better tracking.'},
+    ];
+
+    return SizedBox(
+      height: 100,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: tips.length,
+        itemBuilder: (context, index) {
+          final tip = tips[index];
+          return Container(
+            width: 260,
+            margin: const EdgeInsets.only(right: 15),
+            padding: const EdgeInsets.all(15),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.04),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(0.05)),
+            ),
+            child: Row(
+              children: [
+                Icon(tip['icon'], color: Colors.blueAccent, size: 30),
+                const SizedBox(width: 15),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(tip['title'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                      Text(tip['desc'], style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 
