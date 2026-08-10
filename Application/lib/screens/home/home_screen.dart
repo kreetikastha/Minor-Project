@@ -293,8 +293,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       builder: (context, constraints) {
         return Row(
           children: [
-            Expanded(child: _buildStatWidget(Icons.favorite, "72", "bpm", Colors.pinkAccent)),
-            const SizedBox(width: 8),
             Expanded(child: _buildStatWidget(Icons.battery_4_bar_rounded, "88", "%", Colors.greenAccent)),
             const SizedBox(width: 8),
             Expanded(child: _buildStatWidget(Icons.sensors_rounded, "Active", "Signal", Colors.orangeAccent)),
