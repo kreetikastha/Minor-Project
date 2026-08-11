@@ -1,12 +1,12 @@
 class BandStatus {
-  final double latitude;
-  final double longitude;
+  final double? latitude;
+  final double? longitude;
   final bool isEmergency;
   final DateTime lastUpdated;
 
   BandStatus({
-    required this.latitude,
-    required this.longitude,
+    this.latitude,
+    this.longitude,
     required this.isEmergency,
     required this.lastUpdated,
   });
@@ -26,8 +26,8 @@ class BandStatus {
     }
 
     return BandStatus(
-      latitude: json['latitude']?.toDouble() ?? 27.6713,
-      longitude: json['longitude']?.toDouble() ?? 85.3392,
+      latitude: json['latitude']?.toDouble(),
+      longitude: json['longitude']?.toDouble(),
       isEmergency: json['is_emergency'] ?? false,
       lastUpdated: parsedDate,
     );

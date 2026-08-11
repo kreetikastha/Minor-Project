@@ -6,7 +6,7 @@ class NotificationProvider with ChangeNotifier {
     SystemNotification(
       id: "1",
       title: "System Ready",
-      message: "Guardian Band successfully connected via Bluetooth.",
+      message: "Guardian Band successfully synced with Cloud via Wi-Fi.",
       timestamp: DateTime.now().subtract(const Duration(minutes: 5)),
       type: "System",
     ),

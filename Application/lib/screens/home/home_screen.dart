@@ -9,7 +9,6 @@ import 'package:geocoding/geocoding.dart';
 import '../../models/band_status.dart';
 import '../../services/api_service.dart';
 import '../../services/notification_service.dart';
-
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -41,6 +40,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   Future<void> _setupBandListener() async {
     const String bandId = "guardian_device_01"; 
+    _statusSubscription?.cancel();
     _statusSubscription = _apiService.getStatusStream(bandId).listen((status) {
       if (mounted) {
         // Update Marker and Camera
@@ -51,7 +51,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             position: position,
             infoWindow: const InfoWindow(title: "Child Position"),
             icon: BitmapDescriptor.defaultMarkerWithHue(
-              status.isEmergency ? BitmapDescriptor.hueRed : BitmapDescriptor.defaultMarkerWithHue(210)
+              status.isEmergency ? BitmapDescriptor.hueRed : BitmapDescriptor.hueAzure
             ),
           )
         };
@@ -71,7 +71,36 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     });
   }
 
-  // ... (keeping _updateAddress, _handleEmergency, _stopAlarm as they are)
+  Future<void> _updateAddress(double lat, double lng) async {
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(lat, lng);
+      if (placemarks.isNotEmpty) {
+        Placemark p = placemarks[0];
+        setState(() => _currentAddress = "${p.name}, ${p.subLocality}, ${p.locality}");
+      }
+    } catch (_) {}
+  }
+
+  void _handleEmergency() async {
+    _emergencyAlreadyTriggered = true;
+    _audioPlayer.setReleaseMode(ReleaseMode.loop);
+    _audioPlayer.play(UrlSource('https://www.soundjay.com/buttons/beep-01a.mp3'));
+    Vibration.vibrate(duration: 2000, repeat: 1);
+    _notificationService.showEmergencyNotification(address: _currentAddress);
+  }
+
+  void _stopAlarm() {
+    _audioPlayer.stop();
+    Vibration.cancel();
+  }
+
+  @override
+  void dispose() {
+    _statusSubscription?.cancel();
+    _audioPlayer.dispose();
+    _pulseController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -88,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               const SizedBox(height: 20),
               _buildStatusCard(isSOS),
               const SizedBox(height: 20),
-              _buildLiveMapPanel(), // NEW: Embedded Google Map
+              _buildLiveMapPanel(),
               const SizedBox(height: 10),
               _buildAddressInfo(),
               const Spacer(),
@@ -101,9 +130,47 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
+  Widget _buildHeader() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("GUARDIAN", style: TextStyle(color: Colors.blueAccent, letterSpacing: 3, fontWeight: FontWeight.bold)),
+            Text(_apiService.currentUserEmail ?? "User", style: const TextStyle(color: Colors.white54, fontSize: 12)),
+          ],
+        ),
+        ScaleTransition(
+          scale: Tween(begin: 1.0, end: 1.2).animate(_pulseController),
+          child: const Icon(Icons.wifi_tethering, color: Colors.greenAccent, size: 20),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatusCard(bool isSOS) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: isSOS ? Colors.redAccent.withOpacity(0.1) : Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: isSOS ? Colors.redAccent : Colors.white10),
+      ),
+      child: Column(
+        children: [
+          Text(isSOS ? "ALERT ACTIVE" : "SYSTEM ARMED", style: TextStyle(color: isSOS ? Colors.redAccent : Colors.greenAccent, fontSize: 24, fontWeight: FontWeight.w900)),
+          const SizedBox(height: 8),
+          Text(_currentStatus != null ? "Last Sync: ${DateFormat('HH:mm:ss').format(_currentStatus!.lastUpdated)}" : "Connecting...", style: const TextStyle(color: Colors.white38)),
+        ],
+      ),
+    );
+  }
+
   Widget _buildLiveMapPanel() {
     return Container(
-      height: 250,
+      height: 300,
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
@@ -136,7 +203,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       ),
     );
   }
-  
-  // ... (Rest of the helper widgets)
-}
+
+  Widget _buildDeactivateButton() {
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, minimumSize: const Size(double.infinity, 60), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+      onPressed: () => _apiService.deactivateEmergency("guardian_device_01"),
+      child: const Text("DEACTIVATE ALARM", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+    );
+  }
 }

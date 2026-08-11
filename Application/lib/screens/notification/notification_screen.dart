@@ -74,7 +74,8 @@ class NotificationScreen extends StatelessWidget {
     switch (type) {
       case 'SOS': return Icons.warning_rounded;
       case 'Battery': return Icons.battery_alert_rounded;
-      default: return Icons.info_outline_rounded;
+      case 'System': return Icons.cloud_sync_rounded;
+      default: return Icons.wifi_tethering_rounded;
     }
   }
 
@@ -82,6 +83,7 @@ class NotificationScreen extends StatelessWidget {
     switch (type) {
       case 'SOS': return Colors.red;
       case 'Battery': return Colors.orange;
+      case 'System': return Colors.blueAccent;
       default: return Colors.blue;
     }
   }
