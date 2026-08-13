@@ -1,12 +1,14 @@
 class BandStatus {
-  final double? latitude;
-  final double? longitude;
+  final double latitude;
+  final double longitude;
+  final String googleMapsLink;
   final bool isEmergency;
   final DateTime lastUpdated;
 
   BandStatus({
-    this.latitude,
-    this.longitude,
+    required this.latitude,
+    required this.longitude,
+    required this.googleMapsLink,
     required this.isEmergency,
     required this.lastUpdated,
   });
@@ -26,8 +28,9 @@ class BandStatus {
     }
 
     return BandStatus(
-      latitude: json['latitude']?.toDouble(),
-      longitude: json['longitude']?.toDouble(),
+      latitude: json['latitude']?.toDouble() ?? 27.6713,
+      longitude: json['longitude']?.toDouble() ?? 85.3392,
+      googleMapsLink: json['google_maps_link'] ?? "https://www.google.com/maps?q=${json['latitude']},${json['longitude']}",
       isEmergency: json['is_emergency'] ?? false,
       lastUpdated: parsedDate,
     );

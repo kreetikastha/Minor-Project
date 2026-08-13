@@ -12,7 +12,59 @@ class ApiService {
 
   String? get currentUserEmail => _auth.currentUser?.email;
 
-  // Stream for Real-time Status Updates
+  // Firebase Authentication
+  Future<String?> login(String email, String password) async {
+    try {
+      await _auth.signInWithEmailAndPassword(email: email, password: password);
+      return null; // Success
+    } on FirebaseAuthException catch (e) {
+      return e.message;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  Future<String?> register(String email, String password) async {
+    try {
+      await _auth.createUserWithEmailAndPassword(email: email, password: password);
+      return null; // Success
+    } on FirebaseAuthException catch (e) {
+      return e.message;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  Future<String?> resetPassword(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+      return null;
+    } on FirebaseAuthException catch (e) {
+      return e.message;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  Future<void> logout() async => await _auth.signOut();
+
+  // Band Data Methods
+  Future<BandStatus> fetchBandStatus() async {
+    final bandId = await getAssignedBandId();
+    final snapshot = await _rtdb.ref('bands/$bandId').get();
+    if (snapshot.exists && snapshot.value != null) {
+      final Map<String, dynamic> data = Map<String, dynamic>.from(snapshot.value as Map);
+      return BandStatus.fromJson(data);
+    }
+    return BandStatus(
+      latitude: 27.6713,
+      longitude: 85.3392,
+      googleMapsLink: "",
+      isEmergency: false,
+      lastUpdated: DateTime.now(),
+    );
+  }
+
   Stream<BandStatus> getStatusStream(String bandId) {
     return _rtdb.ref('bands/$bandId').onValue.map((event) {
       if (event.snapshot.exists && event.snapshot.value != null) {
@@ -22,13 +74,13 @@ class ApiService {
       return BandStatus(
         latitude: 27.6713,
         longitude: 85.3392,
+        googleMapsLink: "",
         isEmergency: simulateEmergency,
         lastUpdated: DateTime.now(),
       );
     });
   }
 
-  // Remote Deactivation
   Future<void> deactivateEmergency(String bandId) async {
     final user = _auth.currentUser;
     try {
@@ -69,5 +121,20 @@ class ApiService {
     return doc.data()?['assigned_band_id'] as String? ?? 'guardian_device_01';
   }
 
-  Future<void> logout() async => await _auth.signOut();
+  Future<void> logSOS(BandStatus status, String address) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    try {
+      await _db.collection('users').doc(user.uid).collection('history').add({
+        'timestamp': FieldValue.serverTimestamp(),
+        'latitude': status.latitude,
+        'longitude': status.longitude,
+        'address': address,
+        'google_maps_link': status.googleMapsLink,
+        'event_type': 'Vibration Alert',
+      });
+    } catch (e) {
+      print("DEBUG: Logging failed: $e");
+    }
+  }
 }
